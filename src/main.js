@@ -7,6 +7,10 @@ import initErrorHandle from "@/utils/initErrorHandle";
 import router from "./router";
 import pinia from "./store";
 
+const app = createApp(App);
 initErrorHandle();
 
-createApp(App).use(router).use(pinia).use(Icon).mount("#app");
+app.use(router);
+app.use(pinia);
+app.use(Icon);
+app.mount("#app");

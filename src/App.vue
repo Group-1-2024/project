@@ -1,4 +1,7 @@
 <template>
   <RouterView />
-  <div class="w-[100px] h-[100px] bg-red-400"></div>
+  <TabBar></TabBar>
 </template>
+<script setup>
+import TabBar from "./views/Tabbar/TabBar.vue";
+</script>
