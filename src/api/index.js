@@ -1,5 +1,6 @@
 /* eslint-disable implicit-arrow-linebreak */
 import to from "await-to-js";
+// eslint-disable-next-line import/no-cycle
 import request from "./request";
 
 export const getHomePageData = async () => {
@@ -10,3 +11,14 @@ export const getHomePageData = async () => {
 export const getHomePageMenu = () => request.get("/homepage/dragon/ball");
 export const loginByPhone = (data) => request.post("/login/cellphone", data);
 export const sendValidCode = (data) => request.post("/captcha/sent", data);
+// 获取MV排行榜 {参数名： 参数值}
+export const getTopMv = (data) => request.post("/top/mv", data);
+// 获取歌单所有歌曲
+export const getPlaylistTrackAll = (data) =>
+  request.post("/playlist/track/all", data);
+// 获取歌单详情
+export const getPlaylistDetail = (data) =>
+  request.post("/playlist/detail", data);
+// 相关歌单推荐
+export const getRelatedPlaylist = (data) =>
+  request.post("/related/playlist", data);
