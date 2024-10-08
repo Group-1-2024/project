@@ -22,3 +22,10 @@ export const getPlaylistDetail = (data) =>
 // 相关歌单推荐
 export const getRelatedPlaylist = (data) =>
   request.post("/related/playlist", data);
+// 获取验证码的key值
+export const codeKey = () => request.get("/login/qr/key");
+// 获取二维码
+export const code = (data) => request.get("/login/qr/create", { params: data });
+// 获取验证码状态
+export const codestatus = (data) =>
+  request.get("/login/qr/check", { params: data });

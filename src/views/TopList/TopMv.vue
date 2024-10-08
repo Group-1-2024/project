@@ -3,7 +3,12 @@
     MV排行榜
   </div>
   <van-tabs v-model:active="active" @click-tab="onClickTab" sticky>
-    <van-tab :title="area" v-for="(area, index) in areaList" :key="index">
+    <van-tab
+      :title="area"
+      v-for="(area, index) in areaList"
+      :key="index"
+      style="color: red"
+    >
       <div
         v-for="(item, index) in TopMvData"
         :key="index"
