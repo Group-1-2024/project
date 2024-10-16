@@ -29,3 +29,18 @@ export const code = (data) => request.get("/login/qr/create", { params: data });
 // 获取验证码状态
 export const codestatus = (data) =>
   request.get("/login/qr/check", { params: data });
+
+
+export const checkValidCode = (data) => request.post("/captcha/verify", data);
+export const getInformation = (params) =>
+  request.get("/user/detail", { params });
+// 获取用户信息 , 歌单，收藏，mv, dj 数量
+export const getUserSubcount = () => request.get("/user/subcount");
+// 游客登录
+export const getVisitorLogin = () => request.get("/register/anonimous");
+// 邮箱登录
+export const getEmailLogin = (data) => request.post("/login", data);
+// 获取用户歌单
+export const getUserPlaylist = (params) =>
+  request.get("/user/playlist", { params });
+

@@ -1,136 +1,156 @@
+<!-- eslint-disable max-len -->
 <template>
-  <div class="bg-[#fff] h-[100vh]">
-    <div class="flex justify-between p-[2vw]">
-      <Icon
-        icon="lets-icons:expand-left"
-        width="16"
-        height="16"
-        style="color: black"
-        @click="goBack"
-      />
-      <div>游客登录</div>
+  <!-- v-model 语法糖  v-model展开写法-->
+  <!-- <input type="text" placeholder="手机号" v-model:abc="a" v-model:def="b"/><br> -->
+  <!-- <h1>{{ message }}</h1> -->
+  <!-- <MyInput placeholder="自定义输入框" v-model:value="message" @update:value="(e) => (message = e)"/> -->
+  <!--
+    如何实现组件的v-model:key
+    组件需要实现key的props属性
+    组件需要定义一个update:key事件用来更新绑定key的数据
+  -->
+  <!-- <MyInput placeholder="自定义输入框" :value="message" @input="e => message = e"/> -->
+  <div class="w-[100%] overflow-hidden pt-[100px] box-border">
+    <div class="flex items-center justify-center">
+      <img class="w-[70vw]" src="/public/logo.fill.svg" alt="" />
     </div>
-    <div class="flex flex-col justify-around h-[100vw]">
-      <div class="flex justify-center">
-        <img src="@/assets/logo.fill.svg" class="w-[38vw] h-[7vw]" alt="" />
+    <div
+      class="w-[100%] h-[100%] bg-[url('https://huamaobizhi.com/appApi/wallpaper/getImages_1_0/?pid=21526&resolution=1000w680h')] rounded-lg"
+    >
+      <div class="flex flex-col items-center justify-center mt-10">
+        <MyInput
+          class="mt-1 mr-[12%] w-[250px] "
+          placeholder="请输入手机号"
+          v-model:value="userInfo.phone"
+        /><br />
+        <!-- <MyInput class="mt-1 " placeholder="请输入密码" type="password" v-model:value="userInfo.password"/><br> -->
+        <MyInput
+          class="mt-1 w-[150px] h-[40px] mr-[38%] ml-[10px]"
+          placeholder="请输入验证码"
+          type="text"
+          v-model:value="userInfo.captcha"
+        /><br />
+        <div>
+        <button
+          @click="sendCode"
+          class=" w-[100px] h-[40px] inline-block bg-slate-100 border-2 border-lightdark
+          rounded-mg text-sm text-[#B2B3B5] transform translate-y-[-60px] ml-[54%] rounded-[4px]"
+        >
+          发送验证码
+        </button>
       </div>
-      <div class="flex justify-center p-[5vw]">
-        <img
-          :src="qrCode"
-          class="w-[33vw] h-[33vw]"
-          alt="QR Code"
-          v-if="qrCode"
-        />
       </div>
-      <div class="flex justify-center items-center">
-        <span class="text-[#000]"> 使用 </span
-        ><a href="#" class="text-[#3c6a9d] m-[1vw]">网易云音乐App</a>
-        <span class="text-[#000]"> 扫码登录 </span>
+      <div>
+        <button
+          class="w-[200px] h-[40px] leading-10 text-center rounded-lg ml-20  bg-[#ff3a30] mb-5 font-bold text-white"
+          @click="loginHadler"
+        >
+          登录
+        </button>
       </div>
-    </div>
-    <div>
-      <img src="../../assets/images/bg.png" alt="" class="fixed bottom-0" />
+
     </div>
   </div>
 </template>
-
 <script setup>
-import { Icon } from "@iconify/vue";
-import { useRouter } from "vue-router";
-import { codeKey, code, codestatus } from "@/api";
-import { onMounted, ref } from "vue";
+import { ref, watch } from "vue";
+import localforage from "localforage";
+import MyInput from "@/components/MyInput.vue";
+import { loginByPhone, sendValidCode, checkValidCode } from "@/api";
+import { useRouter, useRoute } from "vue-router";
+// import { useRequest } from "vue-request";
+import { showToast } from "vant";
+// import { useUserStore } from "@/store";
 
-// 路由导航
+// const userStore = useUserStore();
+
 const router = useRouter();
-const goBack = () => {
-  router.go(-1);
-};
-
-// 存储二维码 base64 数据
-const qrCode = ref("");
-// 存储二维码状态
-const qrStatus = ref("");
-
-// 异步生成二维码
-const generateQRCode = async () => {
-  try {
-    const timestamp = Date.now(); // 获取时间戳
-    const { data: keyRes } = await codeKey({ timestamp });
-    const key = keyRes.data.unikey;
-    const { data: qrRes } = await code({ key, qrimg: true, timestamp });
-
-    return {
-      qrCode: qrRes.data.qrimg,
-      key: key,
-    };
-  } catch (error) {
-    console.error("二维码生成失败：", error);
-    return null;
-  }
-};
-
-// 检查二维码状态
-const checkQRCodeStatus = async (key, noCookie = false) => {
-  try {
-    const timestamp = Date.now(); // 获取时间戳
-    const { data: statusRes } = await codestatus({ key, noCookie, timestamp });
-    return statusRes; // 返回完整的状态对象
-  } catch (error) {
-    console.error(
-      "二维码状态获取失败：",
-      error.response ? error.response.data : error
-    );
-    return null; // 返回 null 以便调用者处理
-  }
-};
-
-// 在组件挂载后生成二维码
-onMounted(async () => {
-  const qrCodeData = await generateQRCode();
-  if (qrCodeData) {
-    qrCode.value = qrCodeData.qrCode;
-    const key = qrCodeData.key; // 保存 key 以便检查状态
-    const interval = setInterval(async () => {
-      const newStatus = await checkQRCodeStatus(key);
-      if (newStatus) {
-        qrStatus.value = newStatus.code; // 更新状态码
-        console.log("二维码状态:", qrStatus.value);
-
-        switch (qrStatus.value) {
-          case 800:
-            console.log("二维码已过期");
-            clearInterval(interval); // 停止轮询
-            break;
-          case 801:
-            console.log("等待扫码...");
-            break;
-          case 802:
-            console.log("待确认...");
-            break;
-          case 803:
-            console.log("授权登录成功，返回 cookies:", newStatus.cookie);
-            clearInterval(interval); // 停止轮询
-            // TODO: 处理登录成功后的逻辑
-            break;
-          case 502:
-            console.log("扫码失败，尝试无 Cookie 方式登录");
-            const noCookieStatus = await checkQRCodeStatus(key, true);
-            if (noCookieStatus && noCookieStatus.code === 803) {
-              console.log(
-                "授权登录成功（无 Cookie 方式）:",
-                noCookieStatus.cookie
-              );
-              clearInterval(interval);
-              // TODO: 处理登录成功后的逻辑
-            }
-            break;
-          default:
-            console.log("未知状态:", qrStatus.value);
-        }
-      }
-    }, 5000); // 每 5 秒检查一次状态
-  } else {
-    console.error("二维码数据获取失败");
-  }
+const route = useRoute();
+console.log(route.query.originPath);
+const userInfo = ref({
+  phone: "",
+  password: "",
+  captcha: "",
 });
+
+// const photograph = ref("");
+// const { run: sendCode } = useRequest(
+//   () => sendValidCode({ phone: userInfo.value.phone }),
+//   {
+//     manual: true,
+//   },
+// );
+// 发送验证码;
+const sendCode = async () => {
+  // sendValidCode({ phone: userInfo.value.phone }).then((res) => {
+  //   console.log(res);
+  // }).catch((err) => {
+  //   console.log(err);
+  // });
+  try {
+    await sendValidCode({ phone: userInfo.value.phone });
+    showToast("验证码已发送");
+  } catch (err) {
+    showToast("发送验证码失败");
+  }
+};
+
+// const { run: loginHadler,data:res } = useRequest(() => loginByPhone(userInfo.value), {
+//   manual: true,
+// });
+watch((res) => {
+  console.log(res);
+});
+// 登录
+
+const loginHadler = async () => {
+  // 登录成功拿到数据
+  // loginByPhone(userInfo.value)
+  //   .then((res) => {
+  //     // 登录成功后 保存登录状态(cookie/token) 保存登录账号信息（使用本地存储） 以免登录频繁 会封禁账号
+  //     // 跳转到首页
+  //     console.log(res);
+  //     if (res.data.code === 200) {
+  //       localforage
+  //         .setItem("userInfo", res.data)
+  //         .then(() => {
+  //           // 保存用户信息成功跳转到用户想访问的原始页面
+  //           router.replace(route.query.originPath);
+  //           Notify({ type: "success", message: "您已成功登录" });
+  //         })
+  //         .catch((err) => {
+  //           console.log("保存失败", err);
+  //         });
+  //     }
+  //   })
+  //   .catch((err) => {
+  //     console.log(err);
+  //   });
+  try {
+    // 验证验证码是否正确
+    const validRes = await checkValidCode({
+      phone: userInfo.value.phone,
+      captcha: userInfo.value.captcha,
+    });
+
+    // 如果用户输入的验证码和收到的验证码一致，则进行登录
+    if (validRes.data.code === 200) {
+      const loginRes = await loginByPhone(userInfo.value);
+      // 如果登录成功，则保存用户信息并跳转到原始页面或首页
+      if (loginRes.data.code === 200) {
+        await localforage.setItem("userInfo", loginRes.data);
+        showToast("您已成功登录");
+        router.replace(route.query.originPath || "/"); // 跳转到原始页面或首页
+      }
+    } else {
+      // 如果验证码不正确，则提示用户重新输入
+      showToast("验证码不一致，请重新输入");
+    }
+  } catch (err) {
+    // 如果验证码验证或登录失败，则提示用户检查手机号和验证码
+    console.log(err);
+    showToast("登录失败，请检查手机号和验证码");
+  }
+};
+// const message = ref("val...");
 </script>
