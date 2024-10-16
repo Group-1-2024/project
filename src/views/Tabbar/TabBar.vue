@@ -20,7 +20,7 @@
         />
       </template>
     </van-tabbar-item>
-    <van-tabbar-item icon="friends-o">
+    <van-tabbar-item to="/mycenter" icon="friends-o">
       <span>我的</span>
       <template #icon="props">
         <Icon

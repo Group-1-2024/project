@@ -1643,7 +1643,7 @@ const changeDark = () => {
 };
 // 登录路由跳转
 const tologin = () => {
-  router.push("/login");
+  router.push("/QRlogin");
 };
 
 // bug1:暗黑模式返回主页后再打开抽屉，抽屉背景颜色混乱
