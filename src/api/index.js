@@ -12,7 +12,7 @@ export const getHomePageMenu = () => request.get("/homepage/dragon/ball");
 export const loginByPhone = (data) => request.post("/login/cellphone", data);
 export const sendValidCode = (data) => request.post("/captcha/sent", data);
 // 获取MV排行榜 {参数名： 参数值}
-export const getTopMv = (data) => request.post("/top/mv", data);
+export const getTopMv = (params) => request.get("/top/mv", { params });
 // 获取歌单所有歌曲
 export const getPlaylistTrackAll = (data) =>
   request.post("/playlist/track/all", data);
@@ -29,9 +29,9 @@ export const code = (data) => request.get("/login/qr/create", { params: data });
 // 获取验证码状态
 export const codestatus = (data) =>
   request.get("/login/qr/check", { params: data });
-
-
+// 验证验证码
 export const checkValidCode = (data) => request.post("/captcha/verify", data);
+// 获取用户详情
 export const getInformation = (params) =>
   request.get("/user/detail", { params });
 // 获取用户信息 , 歌单，收藏，mv, dj 数量
@@ -44,3 +44,5 @@ export const getEmailLogin = (data) => request.post("/login", data);
 export const getUserPlaylist = (params) =>
   request.get("/user/playlist", { params });
 
+// 获取账号信息
+export const getUserInfo = (params) => request.get("/user/account", { params });

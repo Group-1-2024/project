@@ -1,14 +1,14 @@
 <template>
   <div class="bg-[#fff] h-[100vh]">
-    <div class="flex justify-between p-[2vw]">
+    <div class="flex justify-between p-[2vw] h-[40px] items-center">
       <Icon
         icon="lets-icons:expand-left"
-        width="16"
-        height="16"
+        width="24"
+        height="24"
         style="color: black"
         @click="goBack"
       />
-      <div>游客登录</div>
+      <div @click="handlegetVisitorLogin" class="text-[grey]">游客登录</div>
     </div>
     <div class="flex flex-col justify-around h-[100vw]">
       <div class="flex justify-center">
@@ -23,8 +23,8 @@
         />
       </div>
       <div class="flex justify-center items-center">
-        <span class="text-[#000]"> 使用 </span
-        ><a href="#" class="text-[#3c6a9d] m-[1vw]">网易云音乐App</a>
+        <span class="text-[#000]"> 使用 </span>
+        <a href="#" class="text-[#3c6a9d] m-[1vw]">网易云音乐App</a>
         <span class="text-[#000]"> 扫码登录 </span>
       </div>
     </div>
@@ -37,32 +37,34 @@
 <script setup>
 import { Icon } from "@iconify/vue";
 import { useRouter } from "vue-router";
-import { codeKey, code, codestatus } from "@/api";
+import {
+  codeKey,
+  code,
+  codestatus,
+  getUserInfo,
+  getVisitorLogin,
+  getInformation,
+} from "@/api";
 import { onMounted, ref } from "vue";
 
-// 路由导航
 const router = useRouter();
 const goBack = () => {
   router.go(-1);
 };
 
-// 存储二维码 base64 数据
 const qrCode = ref("");
-// 存储二维码状态
 const qrStatus = ref("");
+let interval = null;
 
 // 异步生成二维码
 const generateQRCode = async () => {
   try {
-    const timestamp = Date.now(); // 获取时间戳
+    const timestamp = Date.now();
     const { data: keyRes } = await codeKey({ timestamp });
     const key = keyRes.data.unikey;
     const { data: qrRes } = await code({ key, qrimg: true, timestamp });
-
-    return {
-      qrCode: qrRes.data.qrimg,
-      key,
-    };
+    qrCode.value = qrRes.data.qrimg;
+    return key;
   } catch (error) {
     console.error("二维码生成失败：", error);
     return null;
@@ -72,63 +74,109 @@ const generateQRCode = async () => {
 // 检查二维码状态
 const checkQRCodeStatus = async (key, noCookie = false) => {
   try {
-    const timestamp = Date.now(); // 获取时间戳
+    const timestamp = Date.now();
     const { data: statusRes } = await codestatus({ key, noCookie, timestamp });
-    return statusRes; // 返回完整的状态对象
+    return statusRes;
   } catch (error) {
     console.error(
       "二维码状态获取失败：",
       error.response ? error.response.data : error
     );
-    return null; // 返回 null 以便调用者处理
+    return null;
   }
 };
 
-// 在组件挂载后生成二维码
-onMounted(async () => {
-  const qrCodeData = await generateQRCode();
-  if (qrCodeData) {
-    qrCode.value = qrCodeData.qrCode;
-    const {key} = qrCodeData; // 保存 key 以便检查状态
-    const interval = setInterval(async () => {
-      const newStatus = await checkQRCodeStatus(key);
-      if (newStatus) {
-        qrStatus.value = newStatus.code; // 更新状态码
-        console.log("二维码状态:", qrStatus.value);
+// 登录成功后获取账号信息和用户详情
+const handleLoginSuccess = async (cookie) => {
+  try {
+    console.log("传递的 Cookie:", cookie);
+    const { data: userInfo } = await getUserInfo({ cookie });
+    console.log("用户信息:", userInfo);
 
-        switch (qrStatus.value) {
-          case 800:
-            console.log("二维码已过期");
-            clearInterval(interval); // 停止轮询
-            break;
-          case 801:
-            console.log("等待扫码...");
-            break;
-          case 802:
-            console.log("待确认...");
-            break;
-          case 803:
-            console.log("授权登录成功，返回 cookies:", newStatus.cookie);
-            clearInterval(interval); // 停止轮询
-            // TODO: 处理登录成功后的逻辑
-            break;
-          case 502:
-            console.log("扫码失败，尝试无 Cookie 方式登录");
-            const noCookieStatus = await checkQRCodeStatus(key, true);
-            if (noCookieStatus && noCookieStatus.code === 803) {
-              console.log(
-                "授权登录成功（无 Cookie 方式）:",
-                noCookieStatus.cookie
-              );
-              clearInterval(interval);
-              // TODO: 处理登录成功后的逻辑
-            }
-            break;
-          default:
-            console.log("未知状态:", qrStatus.value);
+    // 获取用户详情
+    const uid = userInfo.account.id;
+    const { data: userDetail } = await getInformation({ uid });
+    console.log("用户详情:", userDetail);
+
+    // TODO: 在这里处理用户信息和用户详情，例如保存到本地存储或者状态管理
+  } catch (error) {
+    console.error(
+      "获取用户信息失败:",
+      error.response ? error.response.data : error
+    );
+  }
+};
+
+// 游客登录
+const handlegetVisitorLogin = async () => {
+  try {
+    const { data: guestRes } = await getVisitorLogin();
+    console.log("游客登录成功，Cookie:", guestRes.cookie);
+    await handleLoginSuccess(guestRes.cookie);
+  } catch (error) {
+    console.error(
+      "游客登录失败:",
+      error.response ? error.response.data : error
+    );
+  }
+};
+
+// 处理二维码状态变化
+const handleQRCodeStatus = async (key) => {
+  const newStatus = await checkQRCodeStatus(key);
+  if (newStatus) {
+    qrStatus.value = newStatus.code;
+    console.log("二维码状态:", qrStatus.value);
+
+    switch (qrStatus.value) {
+      case 800:
+        console.log("二维码已过期");
+        stopInterval();
+        break;
+      case 801:
+        console.log("等待扫码...");
+        break;
+      case 802:
+        console.log("待确认...");
+        break;
+      case 803:
+        console.log("授权登录成功，返回 cookies:", newStatus.cookie);
+        stopInterval();
+        await handleLoginSuccess(newStatus.cookie);
+        break;
+      case 502:
+        console.log("扫码失败，尝试无 Cookie 方式登录");
+        const noCookieStatus = await checkQRCodeStatus(key, true);
+        if (noCookieStatus && noCookieStatus.code === 803) {
+          console.log("授权登录成功（无 Cookie 方式）:", noCookieStatus.cookie);
+          stopInterval();
+          await handleLoginSuccess(noCookieStatus.cookie);
         }
-      }
-    }, 5000); // 每 5 秒检查一次状态
+        break;
+      default:
+        console.log("未知状态:", qrStatus.value);
+    }
+  }
+};
+
+// 启动定时器
+const startInterval = (key) => {
+  interval = setInterval(() => handleQRCodeStatus(key), 5000);
+};
+
+// 停止定时器
+const stopInterval = () => {
+  if (interval) {
+    clearInterval(interval);
+    interval = null;
+  }
+};
+
+// 在组件挂载后生成二维码并启动状态轮询
+onMounted(async () => {
+  const key = await generateQRCode();
+  if (key) {
+    startInterval(key);
   } else {
     console.error("二维码数据获取失败");
   }

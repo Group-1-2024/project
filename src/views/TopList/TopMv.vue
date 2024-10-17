@@ -2,16 +2,11 @@
   <div class="text-center font-bold h-[12vw] leading-[12vw] text-[16px]">
     MV排行榜
   </div>
-  <van-tabs v-model:active="active" @click-tab="onClickTab" sticky>
-    <van-tab
-      :title="area"
-      v-for="(area, index) in areaList"
-      :key="index"
-      style="color: red"
-    >
+  <van-tabs v-model:active="active" sticky>
+    <van-tab :title="area" v-for="(area, index) in areaList" :key="index">
       <div
         v-for="(item, index) in TopMvData"
-        :key="index"
+        :key="item.id"
         class="w-[92vw] relative m-auto mt-[2vw]"
       >
         <img :src="item.mvImg" class="w-[92vw] h-[53vw] rounded-[10px]" />
@@ -26,7 +21,6 @@
             }}</span>
           </div>
         </div>
-
         <div class="absolute right-[2vw] top-[5px] flex">
           <Icon
             icon="icon-park-solid:play-one"
@@ -42,88 +36,42 @@
     </van-tab>
   </van-tabs>
 </template>
+
 <script setup>
 import { getTopMv } from "@/api";
-import { ref, watchEffect } from "vue";
+import { ref, computed } from "vue";
 import { useRequest } from "vue-request";
 import { Icon } from "@iconify/vue";
-// import { useRequest } from "vue-request";
-// "内地", "港台", "欧美", "日本", "韩国"
+
+// 地区列表
 const areaList = ["内地", "港台", "欧美", "日本", "韩国"];
-const active = ref(0);
-const areaName = ref("内地");
-const TopMvData = ref([]);
-function formatNum(number) {
-  if (number < 10000) {
-    return number.toString(); // 不足五位数，直接返回
-  }
-  if (number < 100000000 && number >= 10000) {
-    const wan = Math.round(number / 10000).toString();
-    return `${wan}万`;
-  }
-  const yi = Math.round(number / 100000000).toString();
-  return `${yi}亿`;
-}
-// getTopMv({
-//   params: {
-//     area: areaName.value,
-//   },
-// }).then((res) => {
-//   TopMvData.value = res.data.data.map((item) => ({
-//     id: item.id,
-//     artname: item.artists[0].name,
-//     mvImg: item.cover,
-//     mvId: item.mv.id,
-//     mvtitle: item.mv.title,
-//     playCount: item.playCount,
-//   }));
-//   console.log(TopMvData);
+const active = ref(0); // 当前选中的tab索引
+const areaName = computed(() => areaList[active.value]); // 根据索引计算当前地区
 
-//   return TopMvData;
-// });
+// 获取MV数据的请求
+const { data: res } = useRequest(() => getTopMv({ area: areaName.value }), {
+  refreshDeps: areaName,
+});
 
-const { data: res } = useRequest(
+// 处理MV数据，映射到需要的格式
+const TopMvData = computed(
   () =>
-    getTopMv({
-      area: areaName.value,
-    }),
-  {
-    refreshDeps: areaName,
-  }
-);
-function onClickTab() {
-  areaName.value = areaList[active.value];
-  console.log(areaName.value);
-}
-watchEffect(() => {
-  if (res.value && res.value.data) {
-    TopMvData.value = res.value.data.data.map((item) => ({
+    res.value?.data?.data?.map((item) => ({
       id: item.id,
       artname: item.artists[0].name,
       mvImg: item.cover,
       mvId: item.mv.id,
       mvtitle: item.mv.title,
       playCount: item.playCount,
-    }));
-  }
-});
+    })) || []
+);
 
-// getTopMv({
-//   area: areaName.value,
-// })
-//   .then((res) => {
-//     TopMvData.value = res.data.data.map((item) => ({
-//       id: item.id,
-//       artname: item.artists[0].name,
-//       mvImg: item.cover,
-//       mvId: item.mv.id,
-//       mvtitle: item.mv.title,
-//       playCount: item.playCount,
-//     }));
-//   })
-//   .catch((error) => {
-//     showToast("Failed to load data");
-//     console.error(error);
-//   });
+// 格式化播放次数为“万”或“亿”
+function formatNum(number) {
+  if (number < 1e4) return number.toString();
+  if (number < 1e8) return `${Math.round(number / 1e4)}万`;
+  return `${Math.round(number / 1e8)}亿`;
+}
 </script>
+
 <style scoped></style>
